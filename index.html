@@ -79,7 +79,19 @@ h1 .o{display:block;color:var(--orange)}
 .proof span{font-size:14px;color:var(--muted)}
 
 /* form */
-.fcard{background:var(--paper);border:1px solid var(--line);box-shadow:0 30px 60px -30px rgba(0,0,0,.45);overflow:hidden}
+.fcard{position:relative;background:var(--paper);border:1px solid var(--line);box-shadow:0 30px 60px -30px rgba(0,0,0,.45);overflow:hidden}
+.fwrap{position:relative}
+.here{position:absolute;z-index:3;top:-15px;left:24px;background:var(--orange);color:#fff;font:800 13px/1 Inter,sans-serif;padding:8px 12px;border-radius:999px;box-shadow:0 8px 20px rgba(255,75,43,.4);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .25s,transform .25s}
+.fwrap.lit .here{opacity:1;transform:none}
+.fwrap.lit .fcard{animation:cpGlow 1.8s ease-out 1;border-color:var(--orange)}
+@keyframes cpGlow{
+  0%{box-shadow:0 0 0 0 rgba(255,75,43,0),0 30px 60px -30px rgba(0,0,0,.45);transform:scale(1)}
+  15%{box-shadow:0 0 0 6px rgba(255,75,43,.55),0 0 48px 10px rgba(255,75,43,.35);transform:scale(1.015)}
+  40%{box-shadow:0 0 0 3px rgba(255,75,43,.35),0 0 24px 4px rgba(255,75,43,.2);transform:scale(1)}
+  60%{box-shadow:0 0 0 6px rgba(255,75,43,.5),0 0 40px 8px rgba(255,75,43,.3)}
+  100%{box-shadow:0 0 0 0 rgba(255,75,43,0),0 30px 60px -30px rgba(0,0,0,.45)}
+}
+@media (prefers-reduced-motion:reduce){.fwrap.lit .fcard{animation:none;outline:3px solid var(--orange);outline-offset:3px}}
 .fhead{background:var(--dark);color:#fff;padding:20px 24px 18px}
 .fhead h2{font-size:25px;color:#fff}
 .fhead p{color:#C9C9C9;font-size:14px;margin-top:4px}
@@ -262,6 +274,7 @@ footer a{color:var(--muted)}
 <div class="container layout" id="top">
 
 <aside class="aside" id="start" aria-label="Get started">
+  <div class="fwrap" id="fwrap"><span class="here" aria-hidden="true">Start here</span>
   <div class="fcard">
     <div class="fhead">
       <h2>Get expert medico-legal guidance</h2>
@@ -321,6 +334,7 @@ footer a{color:var(--muted)}
       <p class="reassure"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Your details stay private and are never shared.</p>
     </div>
   </div>
+</div>
 </aside>
 
 <div class="main">
@@ -451,7 +465,24 @@ function go(n, focus){
   if(focus){ const f = steps[n].querySelector('input:not([type=hidden]):checked, select, input.i'); f && f.focus({preventScroll:true}); }
 }
 function fail(msg, el){ err.textContent=msg; err.style.display='block'; el && el.focus(); }
-function toForm(){ document.getElementById('start').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto':'smooth', block:'start'}); }
+let litTimer;
+function toForm(){
+  const wrap=document.getElementById('fwrap'), card=wrap.querySelector('.fcard');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const r=card.getBoundingClientRect(), hdr=document.querySelector('header.top').offsetHeight;
+  const visible = r.top>=hdr-2 && r.bottom<=innerHeight+2;
+  let delay=0;
+  if(!visible){ document.getElementById('start').scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'}); delay = reduce?0:500; }
+  clearTimeout(litTimer);
+  setTimeout(()=>{
+    wrap.classList.remove('lit'); void wrap.offsetWidth; wrap.classList.add('lit');
+    const cur=steps.find(st=>st&&!st.hidden);
+    const f=cur && (cur.querySelector('input[type=radio]:checked')||cur.querySelector('input.i,select.i,input[type=radio]'));
+    f && f.focus({preventScroll:true});
+    litTimer=setTimeout(()=>wrap.classList.remove('lit'),2400);
+  }, delay);
+}
+document.querySelectorAll('a[href="#start"]').forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); toForm(); }));
 function setNeed(v){
   const r = form.querySelector('input[name=need][value="'+v+'"]'); if(!r) return;
   r.checked = true;
